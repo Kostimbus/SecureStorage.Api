@@ -10,4 +10,13 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\SecureStorage.Application\SecureStorage.Application.csproj" />
+    <ProjectReference Include="..\SecureStorage.Infrastructure\SecureStorage.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Controllers\" />
+  </ItemGroup>
+
 </Project>

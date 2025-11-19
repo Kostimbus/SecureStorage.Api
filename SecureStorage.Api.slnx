@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SecureStorage.Api/SecureStorage.Api.csproj" />
+  <Project Path="SecureStorage.Application/SecureStorage.Application.csproj" />
+  <Project Path="SecureStorage.Core/SecureStorage.Core.csproj" />
+  <Project Path="SecureStorage.Infrastructure/SecureStorage.Infrastructure.csproj" />
+</Solution>

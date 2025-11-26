@@ -15,9 +15,7 @@ namespace SecureStorage.Infrastructure.Repositories
         private readonly AppDbContext _context;
 
         public EfFileRepository(AppDbContext context)
-        {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
-        }
+            => _context = context ?? throw new ArgumentNullException(nameof(context));
 
         public async Task<Guid> CreateAsync(FileRecord record, CancellationToken cancellationToken = default)
         {
@@ -56,7 +54,6 @@ namespace SecureStorage.Infrastructure.Repositories
 
             // Approach: attach the provided record and mark it modified.
             // This assumes the provided object contains the desired final state.
-            // Alternatively, you can load the tracked entity and patch properties.
             _context.FileRecords.Update(record);
             await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -68,6 +65,13 @@ namespace SecureStorage.Infrastructure.Repositories
 
             _context.FileRecords.Remove(existing);
             await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+
+        public async Task<bool> DeleteAsync(FileRecord record, CancellationToken ct = default)
+        {
+            _context.FileRecords.Remove(record);
+            await _context.SaveChangesAsync(ct);
             return true;
         }
     }

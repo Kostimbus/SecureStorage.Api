@@ -1,14 +1,18 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Builder;
+using SecureStorage.Application.Interfaces;
+using SecureStorage.Application.Services;
+using SecureStorage.Infrastructure.Services;
+using SecureStorage.Infrastructure.Crypto;
+using SecureStorage.Infrastructure.Options;
+using SecureStorage.Infrastructure.DependencyInjection;
+using SecureStorage.Core.Interfaces;
+using SecureStorage.Infrastructure.Repositories;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
-using SecureStorage.Application.Interfaces;
-using SecureStorage.Application.Services;
-using SecureStorage.Infrastructure.DependencyInjection;
-using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,8 +24,14 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Add Application services
-builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IUserService, UserService>();
+
+builder.Services.Configure<AesGcmOptions>(builder.Configuration.GetSection("Encryption"));
+builder.Services.Configure<FileStorageOptions>(builder.Configuration.GetSection("Storage"));
+
+builder.Services.AddSingleton<AesGcmFileEncryptionService>();
+builder.Services.AddScoped<IFileRepository, EfFileRepository>();
+builder.Services.AddScoped<IFileService, FileService>();
 
 // Add Infrastructure (DbContext, repos, encryption)
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -37,7 +47,7 @@ var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key no
 var issuer = builder.Configuration["Jwt:Issuer"] ?? "SecureStorage";
 var audience = builder.Configuration["Jwt:Audience"] ?? "SecureStorageClients";
 
-var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
+var keyBytes = System.Text.Encoding.UTF8.GetBytes(jwtKey);
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

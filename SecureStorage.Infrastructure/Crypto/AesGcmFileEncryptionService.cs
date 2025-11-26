@@ -19,7 +19,7 @@ namespace SecureStorage.Infrastructure.Crypto
 
     public class AesGcmFileEncryptionService : IFileEncryptionService, IDisposable
     {
-        private readonly byte[] _key;
+        private readonly byte[] _masterKey;
 
         public AesGcmFileEncryptionService(IOptions<AesGcmOptions> options)
         {
@@ -28,15 +28,16 @@ namespace SecureStorage.Infrastructure.Crypto
             {
                 throw new InvalidOperationException("Encryption key is not configured. Set Encryption:Base64Key.");
             }
-            _key = Convert.FromBase64String(opts.Base64Key);
-            if (_key.Length != 32)
+            _masterKey = Convert.FromBase64String(opts.Base64Key);
+            if (_masterKey.Length != 32)
             {
-                throw new InvalidOperationException("Encryption key is not configured. Set Encryption:Base64Key.");
+                throw new InvalidOperationException("Key must be 32 bytes (AES-256).");
             }
         }
 
-        public Task<byte[]> EncryptAsync(byte[] plaintext, byte[]? associatedData = null, CancellationToken cancellationToken = default)
+        public Task<byte[]> EncryptWithKeyAsync(byte[] key, byte[] plaintext, byte[]? associatedData = null, CancellationToken cancellationToken = default)
         {
+            if (key == null || key.Length != 32) throw new ArgumentException("Key must be 32 bytes (AES-256)", nameof(key));
             if (plaintext == null) throw new ArgumentNullException(nameof(plaintext));
 
             var nonce = new byte[12];
@@ -45,7 +46,7 @@ namespace SecureStorage.Infrastructure.Crypto
             var ciphertext = new byte[plaintext.Length];
             var tag = new byte[16];
 
-            using var aes = new AesGcm(_key, 16);
+            using var aes = new AesGcm(key, 16);
             aes.Encrypt(nonce, plaintext, ciphertext, tag, associatedData);
 
             var combined = new byte[nonce.Length + tag.Length + ciphertext.Length];
@@ -56,8 +57,9 @@ namespace SecureStorage.Infrastructure.Crypto
             return Task.FromResult(combined);
         }
 
-        public Task<byte[]> DecryptAsync(byte[] encryptedPayload, byte[]? associatedData = null, CancellationToken cancellationToken = default)
+        public Task<byte[]> DecryptWithKeyAsync(byte[] key, byte[] encryptedPayload, byte[]? associatedData = null, CancellationToken cancellationToken = default)
         {
+            if (key == null || key.Length != 32) throw new ArgumentException("Key must be 32 bytes (AES-256)", nameof(key));
             if (encryptedPayload == null) throw new ArgumentNullException(nameof(encryptedPayload));
             if (encryptedPayload.Length < 28) throw new ArgumentException("Invalid encrypted payload", nameof(encryptedPayload));
 
@@ -70,18 +72,26 @@ namespace SecureStorage.Infrastructure.Crypto
             Buffer.BlockCopy(encryptedPayload, nonce.Length + tag.Length, ciphertext, 0, ciphertext.Length);
 
             var plaintext = new byte[ciphertext.Length];
-            using var aes = new AesGcm(_key, 16);
+            using var aes = new AesGcm(key, 16);
             aes.Decrypt(nonce, ciphertext, tag, plaintext, associatedData);
 
             return Task.FromResult(plaintext);
         }
 
+
+        public Task<byte[]> EncryptAsync(byte[] plaintext, byte[]? associatedData = null, CancellationToken cancellationToken = default)
+            => EncryptWithKeyAsync(_masterKey, plaintext, associatedData, cancellationToken);
+
+        public Task<byte[]> DecryptAsync(byte[] encryptedPayload, byte[]? associatedData = null, CancellationToken cancellationToken = default)
+            => DecryptWithKeyAsync(_masterKey, encryptedPayload, associatedData, cancellationToken);
+
+
         public void Dispose()
         {
             // Clear the key from memory
-            if (_key != null)
+            if (_masterKey != null)
             {
-                Array.Clear(_key, 0, _key.Length);
+                Array.Clear(_masterKey, 0, _masterKey.Length);
             }
             GC.SuppressFinalize(this);
         }

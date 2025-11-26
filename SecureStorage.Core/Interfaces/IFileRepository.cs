@@ -34,5 +34,10 @@ namespace SecureStorage.Core.Interfaces
         /// </summary>
         Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
+        /// <summary>
+        /// Deletes a file record. Returns true if record existed and was deleted.
+        /// </summary>
+        Task<bool> DeleteAsync(FileRecord record, CancellationToken ct = default);
+
     }
 }

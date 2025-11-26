@@ -23,9 +23,11 @@ namespace SecureStorage.Infrastructure.Data
             file.ToTable("FileRecords");
             file.HasKey(f => f.Id);
             file.Property(f => f.FileName).IsRequired().HasMaxLength(512);
+            file.Property(f => f.FilePath).IsRequired().HasMaxLength(512);
             file.Property(f => f.ContentType).IsRequired().HasMaxLength(128);
             file.Property(f => f.OwnerId).IsRequired();
-            file.Property(f => f.EncryptedData).IsRequired();
+            file.Property(f => f.Salt).IsRequired();
+            file.Property(f => f.EncryptedSize).IsRequired();
             file.Property(f => f.PlaintextSize).IsRequired();
             file.Property(f => f.CreatedAtUtc).IsRequired();
             file.Property(f => f.UpdatedAtUtc).IsRequired(false);

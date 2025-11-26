@@ -3,8 +3,8 @@
 namespace SecureStorage.Core.Models
 {
     /// <summary>
-    /// Domain model representing an encrypted file stored in the system.
-    /// The EncryptedData property stores the encrypted bytes produced by the encryption service.
+    /// Encrypted file metadata. Ciphertext is stored on disk (FilePath).
+    /// Per-file salt (for PBKDF2 key derivation) is stored as byte[].
     /// </summary>
     public class FileRecord
     {
@@ -24,14 +24,20 @@ namespace SecureStorage.Core.Models
         public string ContentType { get; init; } = "application/octet-stream";
 
         /// <summary>
+        /// Path (relative or absolute) to stored encrypted file (nonce|tag|ciphertext).
+        /// </summary>
+        public string FilePath { get; set; } = string.Empty;
+
+        /// <summary>
         /// The owner user's Id.
         /// </summary>
         public Guid OwnerId { get; init; }
 
         /// <summary>
-        /// Encrypted payload bytes. Implementation-specific format.
+        /// Per-file salt used to derive per-file key from master key (Rfc2898).
+        /// Stored as blob/byte[] in DB.
         /// </summary>
-        public byte[] EncryptedData { get; init; } = Array.Empty<byte>();
+        public byte[] Salt { get; set; } = Array.Empty<byte>();
 
         /// <summary>
         /// Size of original plaintext in bytes.
@@ -39,9 +45,9 @@ namespace SecureStorage.Core.Models
         public long PlaintextSize { get; init; }
 
         /// <summary>
-        /// Size of stored encrypted payload in bytes.
+        /// Ciphertext size in bytes (stored file length).
         /// </summary>
-        public long EncryptedSize => EncryptedData?.LongLength ?? 0;
+        public long EncryptedSize { get; set; }
 
         /// <summary>
         /// When the record was created (UTC).

@@ -11,7 +11,7 @@ namespace SecureStorage.Api.DTOs
         /// <summary>
         /// The uploaded file.
         /// </summary>
-        public IFormFile File { get; set; } = null!;
+        public IFormFile File { get; set; } = default!;
 
         /// <summary>
         /// Owner id as string (will be parsed to Guid in controller).

@@ -1,6 +1,6 @@
 ﻿namespace SecureStorage.Api.DTOs
 {
-    public class UserCreateDto
+    public class AuthRegisterDto
     {
         public string Username { get; set; } = "";
         public string Email { get; set; } = "";

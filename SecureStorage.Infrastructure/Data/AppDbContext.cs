@@ -44,10 +44,16 @@ namespace SecureStorage.Infrastructure.Data
             user.Property(u => u.CreatedAtUtc).IsRequired();
             user.Property(u => u.UpdatedAtUtc).IsRequired(false);
             user.Property(u => u.IsDisabled).IsRequired();
+            user.Property(u => u.Role)
+                .IsRequired()
+                .HasMaxLength(50)
+                .HasDefaultValue("User");
 
             // Unique constraints (make sure you enforce at app level too)
             user.HasIndex(u => u.Username).IsUnique();
             user.HasIndex(u => u.Email).IsUnique();
+
+            user.HasIndex(u => u.Role);
         }
 
         /// <summary>

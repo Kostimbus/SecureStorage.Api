@@ -1,11 +1,12 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SecureStorage.Application.Interfaces;
 using SecureStorage.Core.Interfaces;
 using SecureStorage.Infrastructure.Crypto;
 using SecureStorage.Infrastructure.Data;
 using SecureStorage.Infrastructure.Repositories;
+using System;
 
 namespace SecureStorage.Infrastructure.DependencyInjection
 {
@@ -49,6 +50,9 @@ namespace SecureStorage.Infrastructure.DependencyInjection
 
             // Encryption service: singleton is OK because it only holds the key bytes (thread-safe).
             services.AddSingleton<IFileEncryptionService, AesGcmFileEncryptionService>();
+
+            // register JWT token service
+            services.AddSingleton<IJwtTokenService, SecureStorage.Infrastructure.Security.JwtTokenService>();
 
             return services;
 

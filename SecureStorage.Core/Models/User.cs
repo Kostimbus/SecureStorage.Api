@@ -48,5 +48,11 @@ namespace SecureStorage.Core.Models
         /// Optional display name.
         /// </summary>
         public string? DisplayName { get; set; }
+
+        /// <summary>
+        /// Simple role property. Use "User" or "Admin".
+        /// Default is "User".
+        /// </summary>
+        public string Role { get; set; } = "User";
     }
 }

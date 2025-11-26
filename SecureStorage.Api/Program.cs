@@ -1,10 +1,14 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using SecureStorage.Infrastructure.DependencyInjection;
-using SecureStorage.Application.Services;
+using Microsoft.IdentityModel.Tokens;
 using SecureStorage.Application.Interfaces;
+using SecureStorage.Application.Services;
+using SecureStorage.Infrastructure.DependencyInjection;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,9 +32,51 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(opts 
     opts.MultipartBodyLengthLimit = 50 * 1024 * 1024; // 50 MB, adapt as needed
 });
 
+// JWT options
+var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key not set in config.");
+var issuer = builder.Configuration["Jwt:Issuer"] ?? "SecureStorage";
+var audience = builder.Configuration["Jwt:Audience"] ?? "SecureStorageClients";
+
+var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false; // for development only; set true in prod
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+
+        ValidateIssuer = true,
+        ValidIssuer = issuer,
+
+        ValidateAudience = true,
+        ValidAudience = audience,
+
+        ValidateLifetime = true
+    };
+});
+
+// role-based policy
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+});
+
 var app = builder.Build();
+
 if (app.Environment.IsDevelopment())
 {
+    // migrate DB on startup (dev convenience)
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<SecureStorage.Infrastructure.Data.AppDbContext>();
+        db.Database.Migrate();
+    }
     app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -38,6 +84,7 @@ if (app.Environment.IsDevelopment())
 
 //app.UseHttpsRedirection();
 app.UseRouting();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

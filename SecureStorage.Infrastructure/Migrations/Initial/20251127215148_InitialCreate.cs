@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace SecureStorage.Infrastructure.Data.Migrations
+namespace SecureStorage.Infrastructure.Migrations.Initial
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -18,9 +18,11 @@ namespace SecureStorage.Infrastructure.Data.Migrations
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     FileName = table.Column<string>(type: "TEXT", maxLength: 512, nullable: false),
                     ContentType = table.Column<string>(type: "TEXT", maxLength: 128, nullable: false),
+                    FilePath = table.Column<string>(type: "TEXT", maxLength: 512, nullable: false),
                     OwnerId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    EncryptedData = table.Column<byte[]>(type: "BLOB", nullable: false),
+                    Salt = table.Column<byte[]>(type: "BLOB", nullable: false),
                     PlaintextSize = table.Column<long>(type: "INTEGER", nullable: false),
+                    EncryptedSize = table.Column<long>(type: "INTEGER", nullable: false),
                     CreatedAtUtc = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UpdatedAtUtc = table.Column<DateTime>(type: "TEXT", nullable: true),
                     Description = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: true)
@@ -41,7 +43,8 @@ namespace SecureStorage.Infrastructure.Data.Migrations
                     CreatedAtUtc = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UpdatedAtUtc = table.Column<DateTime>(type: "TEXT", nullable: true),
                     IsDisabled = table.Column<bool>(type: "INTEGER", nullable: false),
-                    DisplayName = table.Column<string>(type: "TEXT", nullable: true)
+                    DisplayName = table.Column<string>(type: "TEXT", nullable: true),
+                    Role = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false, defaultValue: "User")
                 },
                 constraints: table =>
                 {
@@ -58,6 +61,11 @@ namespace SecureStorage.Infrastructure.Data.Migrations
                 table: "Users",
                 column: "Email",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Role",
+                table: "Users",
+                column: "Role");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Username",

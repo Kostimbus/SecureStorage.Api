@@ -54,7 +54,7 @@ namespace SecureStorage.Api.Controllers
         /// Download file by id. Returns decrypted plaintext bytes.
         /// GET /api/files/{id}
         /// </summary>
-        [HttpGet("{id:guid}")]
+        [HttpGet("{id:guid}/download")]
         public async Task<IActionResult> Download([FromRoute] Guid id, CancellationToken ct)
         {
             var requestorId = GetUserIdFromClaims();
@@ -62,6 +62,29 @@ namespace SecureStorage.Api.Controllers
             return File(plaintext, record.ContentType, record.FileName);
         }
 
+        /// <summary>
+        /// List files owned by the authenticated user.
+        /// </summary>
+        [HttpGet] // GET /api/files
+        public async Task<IActionResult> List([FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken ct = default)
+        {
+            var ownerId = GetUserIdFromClaims(); // your helper to extract user ID from JWT
+
+            var files = await _fileService.ListByOwnerAsync(ownerId, page, pageSize, ct);
+
+            var result = files.Select(f => new FileResponseDto
+            {
+                Id = f.Id,
+                FileName = f.FileName,
+                ContentType = f.ContentType,
+                PlaintextSize = f.PlaintextSize,
+                EncryptedSize = f.EncryptedSize,
+                CreatedAtUtc = f.CreatedAtUtc,
+                Description = f.Description
+            });
+
+            return Ok(result);
+        }
         // helper
         private Guid GetUserIdFromClaims()
         {

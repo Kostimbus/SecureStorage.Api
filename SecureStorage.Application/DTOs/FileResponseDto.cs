@@ -10,5 +10,6 @@ namespace SecureStorage.Application.DTOs
         public long PlaintextSize { get; set; }
         public long EncryptedSize { get; set; }
         public DateTime CreatedAtUtc { get; set; }
+        public string? Description { get; set; }
     }
 }

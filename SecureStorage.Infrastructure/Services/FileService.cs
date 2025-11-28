@@ -53,7 +53,7 @@ namespace SecureStorage.Infrastructure.Services
             if (_opts.AllowedContentTypes != null && _opts.AllowedContentTypes.Length > 0)
             {
                 if (Array.IndexOf(_opts.AllowedContentTypes, request.ContentType) < 0)
-                    throw new InvalidOperationException("Content type not allowed.");
+                    throw new InvalidOperationException($"Content type '{request.ContentType}' not allowed.");
             }
 
             // Read stream into memory (respect MaxFileSizeBytes)
@@ -195,7 +195,7 @@ namespace SecureStorage.Infrastructure.Services
         /// <summary>
         /// Optional: list files by owner (simple helper).
         /// </summary>
-        public async Task<System.Collections.Generic.IEnumerable<FileRecord>> ListByOwnerAsync(Guid ownerId, int page = 1, int pageSize = 50, CancellationToken ct = default)
+        public async Task<IEnumerable<FileRecord>> ListByOwnerAsync(Guid ownerId, int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
             return await _fileRepo.ListByOwnerAsync(ownerId, page, pageSize, ct);
         }

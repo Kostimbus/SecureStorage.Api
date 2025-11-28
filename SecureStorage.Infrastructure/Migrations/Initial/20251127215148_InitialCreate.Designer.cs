@@ -8,11 +8,11 @@ using SecureStorage.Infrastructure.Data;
 
 #nullable disable
 
-namespace SecureStorage.Infrastructure.Data.Migrations
+namespace SecureStorage.Infrastructure.Migrations.Initial
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251126015614_AddUserRole")]
-    partial class AddUserRole
+    [Migration("20251127215148_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -38,11 +38,15 @@ namespace SecureStorage.Infrastructure.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("TEXT");
 
-                    b.Property<byte[]>("EncryptedData")
-                        .IsRequired()
-                        .HasColumnType("BLOB");
+                    b.Property<long>("EncryptedSize")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FilePath")
                         .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("TEXT");
@@ -52,6 +56,10 @@ namespace SecureStorage.Infrastructure.Data.Migrations
 
                     b.Property<long>("PlaintextSize")
                         .HasColumnType("INTEGER");
+
+                    b.Property<byte[]>("Salt")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("TEXT");

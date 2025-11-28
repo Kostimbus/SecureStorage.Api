@@ -129,7 +129,22 @@ UPLOAD
 Invoke-RestMethod -Method Post -Uri "http://localhost:5149/api/files/upload" -Headers @{ Authorization = "Bearer $jwt" } -Form @{
     file = Get-Item "YOUR_DISK:\YOUR_PATH\YOUR_FILE"
     description = "YOUR_DESCRIPTION"
-}
+```
+
+UPLOAD (PowerShell does not provide a correct content type. Below is a test for text/plain setting.)
+```
+$filePath = "YOUR_DISK:\YOUR_PATH\YOUR_FILE"
+$fileContent = [System.Net.Http.ByteArrayContent]::new([System.IO.File]::ReadAllBytes($filePath))
+$fileContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("text/plain")
+
+$form = [System.Net.Http.MultipartFormDataContent]::new()
+$form.Add($fileContent, "file", [System.IO.Path]::GetFileName($filePath))
+$form.Add((New-Object System.Net.Http.StringContent("YOUR_DESCRIPTION")), "description")
+
+$client = [System.Net.Http.HttpClient]::new()
+$client.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new("Bearer", $jwt)
+$response = $client.PostAsync("http://localhost:5149/api/files/upload", $form).Result
+$response.Content.ReadAsStringAsync().Result
 ```
 
 LIST FILES

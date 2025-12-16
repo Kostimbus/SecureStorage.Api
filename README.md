@@ -5,7 +5,7 @@ Files are encrypted with **AES-GCM** before being stored; authentication is JWT-
 per-user with per-file derived keys and stored on disk, while metadata is stored in a database (SQLite by default).
 
 
-## Features
+## 🛠️ Features
 
 - User registration and login (JWT authentication)
 - Role-based access (`User`, `Admin`)

@@ -59,7 +59,7 @@ namespace SecureStorage.Api.Controllers
         {
             var requestorId = GetUserIdFromClaims();
             var (record, plaintext) = await _fileService.DownloadAsync(id, requestorId, ct);
-            return File(plaintext, record.ContentType, record.FileName);
+            return File(plaintext, record.ContentType ?? "application/octet-stream", record.FileName);
         }
 
         /// <summary>

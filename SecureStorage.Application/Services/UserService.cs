@@ -47,5 +47,26 @@ namespace SecureStorage.Application.Services
             var res = _hasher.VerifyHashedPassword(user, user.PasswordHash ?? string.Empty, passwordPlaintext);
             return res == PasswordVerificationResult.Success ? user : null;
         }
+
+        public async Task<bool> PromoteToAdminAsync(string username, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(username)) throw new ArgumentException("Username cannot be null or whitespace.", nameof(username));
+
+            var user = await _userRepo.GetByUsernameAsync(username, ct);
+            if (user == null) return false;
+
+            if (String.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+            else
+            {
+                user.Role = "Admin";
+                user.UpdatedAtUtc = DateTime.UtcNow;
+
+                await _userRepo.UpdateAsync(user);
+                return true;
+            }
+        }
     }
 }

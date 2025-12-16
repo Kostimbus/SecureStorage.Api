@@ -43,7 +43,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(opts 
 });
 
 // JWT options
-var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key not set in config.");
+var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key not set.");
 var issuer = builder.Configuration["Jwt:Issuer"] ?? "SecureStorage";
 var audience = builder.Configuration["Jwt:Audience"] ?? "SecureStorageClients";
 
@@ -86,6 +86,28 @@ if (app.Environment.IsDevelopment())
     {
         var db = scope.ServiceProvider.GetRequiredService<SecureStorage.Infrastructure.Data.AppDbContext>();
         db.Database.Migrate();
+
+        var userRepo = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+        var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
+
+        var anyAdmin = db.Users.Any(u => u.Role == "Admin");
+        if (!anyAdmin)
+        {
+            // Only for DEV seed an initial admin
+            var adminPass = builder.Configuration["AdminInitialPassword"];
+            if (!string.IsNullOrWhiteSpace(adminPass))
+            {
+                var adminUser = new SecureStorage.Core.Models.User
+                {
+                    Username = "admin",
+                    Email = "admin@localhost",
+                    Role = "Admin"
+                };
+                _ = userService.CreateUserAsync(adminUser, adminPass).GetAwaiter().GetResult();
+                Console.WriteLine("Seeded initial admin user 'admin' (password from InitialAdminPassword).");
+            }
+        }
+
     }
     app.UseDeveloperExceptionPage();
     app.UseSwagger();

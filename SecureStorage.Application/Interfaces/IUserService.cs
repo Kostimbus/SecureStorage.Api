@@ -10,5 +10,6 @@ namespace SecureStorage.Application.Interfaces
         Task<Guid> CreateUserAsync(User user, string passwordPlaintext, CancellationToken ct = default);
         Task<User?> GetByUsernameAsync(string username, CancellationToken ct = default);
         Task<User?> ValidateCredentialsAsync(string username, string passwordPlaintext, CancellationToken ct = default);
+        Task<bool> PromoteToAdminAsync(string username, CancellationToken ct = default);
     }
 }

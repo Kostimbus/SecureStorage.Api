@@ -74,5 +74,29 @@ namespace SecureStorage.Infrastructure.Repositories
             await _context.SaveChangesAsync(ct);
             return true;
         }
+
+        public async Task<(IList<FileRecordWithOwner> Items, int TotalCount)> ListAllWithOwnerAsync(int page = 1, int pageSize = 50, CancellationToken cancellationToken = default)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 50;
+
+            var totalCount = await _context.FileRecords.CountAsync(cancellationToken);
+
+            var query = from file in _context.FileRecords
+                        join user in _context.Users on file.OwnerId equals user.Id
+                        select new FileRecordWithOwner
+                        {
+                            FileRecord = file,
+                            Owner = user
+                        };
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+
+            return (items, totalCount);
+        }
     }
 }

@@ -39,5 +39,10 @@ namespace SecureStorage.Core.Interfaces
         /// </summary>
         Task<bool> DeleteAsync(FileRecord record, CancellationToken ct = default);
 
+        /// <summary>
+        /// List all files with their owners and total count. For admin use only.
+        /// </summary>
+        Task<(IList<FileRecordWithOwner> Items, int TotalCount)> ListAllWithOwnerAsync(int page = 1, int pageSize = 50, CancellationToken cancellationToken = default);
+
     }
 }

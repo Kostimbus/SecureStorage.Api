@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SecureStorage.Application.Interfaces;
+using SecureStorage.Application.Services;
 using SecureStorage.Core.Interfaces;
 using SecureStorage.Infrastructure.Crypto;
 using SecureStorage.Infrastructure.Data;
@@ -47,6 +48,7 @@ namespace SecureStorage.Infrastructure.DependencyInjection
             // Repositories & services
             services.AddScoped<IFileRepository, EfFileRepository>();
             services.AddScoped<IUserRepository, EfUserRepository>();
+            services.AddScoped<IAuditRepository, EfAuditRepository>();
 
             // Encryption service: singleton is OK because it only holds the key bytes (thread-safe).
             services.AddSingleton<IFileEncryptionService, AesGcmFileEncryptionService>();

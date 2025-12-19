@@ -13,5 +13,6 @@ namespace SecureStorage.Application.Interfaces
         Task<(FileRecord Record, byte[] Plaintext)> DownloadAsync(Guid id, Guid requestorId, CancellationToken ct = default);
         Task<bool> DeleteAsync(Guid id, Guid requestorId, CancellationToken ct = default);
         Task<IEnumerable<FileRecord>> ListByOwnerAsync(Guid ownerId, int page = 1, int pageSize = 50, CancellationToken ct = default);
+        Task<bool> IsOwnerAsync(Guid fileId, Guid requestorId, CancellationToken ct = default);
     }
 }

@@ -1,8 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SecureStorage.Application.DTOs;
 using SecureStorage.Application.Interfaces;
@@ -10,6 +6,12 @@ using SecureStorage.Core.Interfaces;
 using SecureStorage.Core.Models;
 using SecureStorage.Infrastructure.Crypto;
 using SecureStorage.Infrastructure.Options;
+using SecureStorage.Infrastructure.Repositories;
+using System;
+using System.IO;
+using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SecureStorage.Infrastructure.Services
 {
@@ -20,6 +22,7 @@ namespace SecureStorage.Infrastructure.Services
     public class FileService : IFileService, IDisposable
     {
         private readonly IFileRepository _fileRepo;
+        private readonly ILogger<FileService> _logger;
         private readonly AesGcmFileEncryptionService _aes; // concrete encryption service with EncryptWithKeyAsync/DecryptWithKeyAsync
         private readonly FileStorageOptions _opts;
         private readonly byte[] _masterKey;
@@ -28,9 +31,11 @@ namespace SecureStorage.Infrastructure.Services
             IFileRepository fileRepo,
             AesGcmFileEncryptionService aes,
             IOptions<FileStorageOptions> fileOptions,
-            IOptions<AesGcmOptions> aesOptions)
+            IOptions<AesGcmOptions> aesOptions,
+             ILogger<FileService> logger)
         {
             _fileRepo = fileRepo ?? throw new ArgumentNullException(nameof(fileRepo));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _aes = aes ?? throw new ArgumentNullException(nameof(aes));
             _opts = fileOptions?.Value ?? throw new ArgumentNullException(nameof(fileOptions));
             if (aesOptions?.Value?.Base64Key == null) throw new ArgumentNullException(nameof(aesOptions));
@@ -193,7 +198,39 @@ namespace SecureStorage.Infrastructure.Services
         }
 
         /// <summary>
-        /// Optional: list files by owner (simple helper).
+        /// Check if requestorId is owner of fileId.
+        /// </summary>
+        public async Task<bool> IsOwnerAsync(Guid fileId, Guid requestorId, CancellationToken ct = default)
+        {
+            _logger.LogDebug("Checking ownership for FileId={FileId} RequestorId={RequestorId}", fileId, requestorId);
+            var record = await _fileRepo.GetByIdAsync(fileId, ct);
+
+            if (record == null)
+            {
+                _logger.LogWarning("Ownership check failed: file not found. FileId={FileId}, RequestorId={RequestorId}", fileId, requestorId);
+                return false;
+            }
+
+            bool isOwner = record.OwnerId == requestorId;
+
+            if (!isOwner)
+            {
+                _logger.LogWarning(
+                    "Ownership check denied. FileId={FileId}, OwnerId={OwnerId}, RequestorId={RequestorId}",
+                    fileId, record.OwnerId, requestorId);
+            }
+            else
+            {
+                _logger.LogDebug(
+                    "Ownership check passed. FileId={FileId}, OwnerId={OwnerId}",
+                    fileId, requestorId);
+            }
+
+            return isOwner;
+        }
+
+        /// <summary>
+        /// List files by owner (simple helper).
         /// </summary>
         public async Task<IEnumerable<FileRecord>> ListByOwnerAsync(Guid ownerId, int page = 1, int pageSize = 50, CancellationToken ct = default)
         {

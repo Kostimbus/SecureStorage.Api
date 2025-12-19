@@ -13,6 +13,7 @@ namespace SecureStorage.Infrastructure.Data
 
         public DbSet<FileRecord> FileRecords { get; set; } = null!;
         public DbSet<User> Users { get; set; } = null!;
+        public DbSet<AuditEntry> AuditEntries { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -56,6 +57,24 @@ namespace SecureStorage.Infrastructure.Data
             user.HasIndex(u => u.Email).IsUnique();
 
             user.HasIndex(u => u.Role);
+
+            // AuditEntry mapping
+            var audit = modelBuilder.Entity<AuditEntry>();
+            audit.ToTable("AuditEntries");
+            audit.HasKey(a => a.Id);
+            audit.Property(a => a.EventType).IsRequired();
+            audit.Property(a => a.ActorUserId).IsRequired(false);
+            audit.Property(a => a.ActorUsername).IsRequired(false).HasMaxLength(256);
+            audit.Property(a => a.FileId).IsRequired(false);
+            audit.Property(a => a.OccurredAtUtc).IsRequired();
+            audit.Property(a => a.RemoteIp).IsRequired(false).HasMaxLength(45); // IPv6 max length
+            audit.Property(a => a.Details).IsRequired(false).HasMaxLength(4000);
+
+            // Indexes for fast admin queries
+            audit.HasIndex(a => a.EventType);
+            audit.HasIndex(a => a.ActorUsername);
+            audit.HasIndex(a => a.OccurredAtUtc);
+
         }
 
         /// <summary>

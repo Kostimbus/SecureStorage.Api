@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SecureStorage.Api.DTOs;
 using SecureStorage.Application.Interfaces;
 using SecureStorage.Core.Interfaces;
+using SecureStorage.Core.Models;
 using SecureStorage.Infrastructure.Repositories;
 
 [ApiController]
@@ -13,10 +14,12 @@ public class AdminController : ControllerBase
 
     private readonly IUserService _userService;
     private readonly IFileRepository _fileRepository;
-    public AdminController(IUserService userService, IFileRepository fileRepository) 
+    private readonly IAuditRepository _auditRepository;
+    public AdminController(IUserService userService, IFileRepository fileRepository, IAuditRepository auditRepository) 
     {
         _fileRepository = fileRepository;
         _userService = userService;
+        _auditRepository = auditRepository;
     }
 
     // <summary>
@@ -86,5 +89,45 @@ public class AdminController : ControllerBase
         };
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Query audit entries (admin only).
+    /// Example: GET /api/admin/audit?page=1&pageSize=50&eventType=Upload&actorUsername=alice
+    /// </summary>
+    [HttpGet("audit")]
+    public async Task<IActionResult> QueryAudit(
+        int page = 1,
+        int pageSize = 50,
+        AuditEventType? eventType = null,
+        string? actorUsername = null,
+        DateTime? dateFromUtc = null,
+        DateTime? dateToUtc = null)
+    {
+        page = page < 1 ? 1 : page;
+        pageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 1000);
+
+        var (items, total) = await _auditRepository.QueryAsync(
+            page, pageSize, eventType, actorUsername, dateFromUtc, dateToUtc);
+
+        var dtoItems = items.Select(a => new AdminAuditDto
+        {
+            Id = a.Id,
+            EventType = a.EventType.ToString(),
+            ActorUserId = a.ActorUserId,
+            ActorUsername = a.ActorUsername,
+            FileId = a.FileId,
+            Details = a.Details,
+            OccurredAtUtc = a.OccurredAtUtc,
+            RemoteIp = a.RemoteIp
+        }).ToList();
+
+        return Ok(new
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = total,
+            Items = dtoItems
+        });
     }
 }

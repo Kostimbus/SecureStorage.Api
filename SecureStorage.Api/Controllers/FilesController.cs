@@ -1,12 +1,13 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using SecureStorage.Api.DTOs;
+using SecureStorage.Application.DTOs;
+using SecureStorage.Application.Interfaces;
+using SecureStorage.Core.Models;
+using System;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using SecureStorage.Api.DTOs;
-using SecureStorage.Application.Interfaces;
-using SecureStorage.Application.DTOs;
 
 namespace SecureStorage.Api.Controllers
 {
@@ -16,8 +17,14 @@ namespace SecureStorage.Api.Controllers
     public class FilesController : ControllerBase
     {
         private readonly IFileService _fileService;
+        private readonly IAuditService _auditService;
 
-        public FilesController(IFileService fileService) => _fileService = fileService;
+        public FilesController(IFileService fileService, IAuditService auditService)
+        {
+            _fileService = fileService;
+            _auditService = auditService;
+
+        }
 
         /// <summary>
         /// Upload a file.
@@ -29,6 +36,8 @@ namespace SecureStorage.Api.Controllers
         public async Task<IActionResult> Upload([FromForm] FileUploadDto dto, CancellationToken ct)
         {
             if (dto?.File == null) return BadRequest("File is required");
+            if (dto.File == null || dto.File.Length == 0) return BadRequest("File is required");
+            if (!Guid.TryParse(dto.OwnerId, out var owner)) return BadRequest("ownerId is invalid");
 
             // Read file into memory stream (ok для <= 50MB).
             var ms = new MemoryStream();
@@ -46,6 +55,20 @@ namespace SecureStorage.Api.Controllers
             var ownerId = GetUserIdFromClaims();
             var result = await _fileService.UploadAsync(request, dto.Description, ownerId, ct);
 
+            // log audit entry
+            var actorId = GetActorUserId();
+            var actorUsername = User.Identity?.Name ?? GetClaim(ClaimTypes.Name) ?? GetClaim(ClaimTypes.Upn) ?? GetClaim("preferred_username");
+            var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            await _auditService.LogEventAsync(
+                AuditEventType.Upload,
+                actorId,
+                actorUsername,
+                details: $"FileName={dto.File.FileName};Size={result.EncryptedSize}",
+                result.Id,
+                remoteIp: remoteIp
+            );
+
             return CreatedAtAction(nameof(Download), new { id = result.Id }, result);
 
         }
@@ -59,7 +82,59 @@ namespace SecureStorage.Api.Controllers
         {
             var requestorId = GetUserIdFromClaims();
             var (record, plaintext) = await _fileService.DownloadAsync(id, requestorId, ct);
+
+            // log download (actor may be null if anonymous - but we require auth above)
+            var actorId = GetActorUserId();
+            var actorUsername = User.Identity?.Name ?? GetClaim(ClaimTypes.Name);
+
+            await _auditService.LogEventAsync(
+                AuditEventType.Download,
+                actorId,
+                actorUsername,
+                details: $"FileName={record.FileName};Size={record.PlaintextSize}",
+                id,
+                remoteIp: HttpContext.Connection.RemoteIpAddress?.ToString()
+            );
+
             return File(plaintext, record.ContentType ?? "application/octet-stream", record.FileName);
+        }
+
+        /// <summary>
+        /// Delete a file (owner or admin).
+        /// </summary>
+        [HttpDelete("{id:guid}/delete")]
+        [Authorize] // owner or admin required
+        public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken ct)
+        {
+            // check ownership or admin role
+            var actorId = GetActorUserId();
+            if (actorId == null)
+                return Unauthorized();
+
+            var actorUsername = User.Identity?.Name ?? GetClaim(ClaimTypes.Name);
+            var isAdmin = User.IsInRole("Admin");
+
+            var requestorId = GetUserIdFromClaims();
+
+            if (!isAdmin)
+            {
+                var isOwner = await _fileService.IsOwnerAsync(id, actorId.Value, ct);
+                if (!isOwner)
+                    return Forbid();
+            }
+
+            await _fileService.DeleteAsync(id, requestorId, ct);
+
+            // log delete
+            await _auditService.LogEventAsync(
+                AuditEventType.Delete,
+                actorId,
+                actorUsername,
+                details: $"FileId={id}",
+                id,
+                remoteIp: HttpContext.Connection.RemoteIpAddress?.ToString()
+            );
+            return NoContent();
         }
 
         /// <summary>
@@ -85,7 +160,17 @@ namespace SecureStorage.Api.Controllers
 
             return Ok(result);
         }
-        // helper
+        // helpers
+
+        private Guid? GetActorUserId()
+        {
+            var idClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
+            if (idClaim == null) return null;
+            return Guid.TryParse(idClaim.Value, out var g) ? g : null;
+        }
+
+        private string? GetClaim(string type) => User.FindFirst(type)?.Value;
+
         private Guid GetUserIdFromClaims()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");

@@ -25,6 +25,7 @@ builder.Services.AddSwaggerGen();
 
 // Add Application services
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 
 builder.Services.Configure<AesGcmOptions>(builder.Configuration.GetSection("Encryption"));
 builder.Services.Configure<FileStorageOptions>(builder.Configuration.GetSection("Storage"));

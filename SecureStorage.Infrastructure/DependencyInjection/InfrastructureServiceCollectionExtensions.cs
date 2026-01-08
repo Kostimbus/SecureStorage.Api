@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SecureStorage.Application.Interfaces;
@@ -49,6 +50,7 @@ namespace SecureStorage.Infrastructure.DependencyInjection
             services.AddScoped<IFileRepository, EfFileRepository>();
             services.AddScoped<IUserRepository, EfUserRepository>();
             services.AddScoped<IAuditRepository, EfAuditRepository>();
+            services.AddScoped<IFileStorage, LocalFileStorage>();
 
             // Encryption service: singleton is OK because it only holds the key bytes (thread-safe).
             services.AddSingleton<IFileEncryptionService, AesGcmFileEncryptionService>();
